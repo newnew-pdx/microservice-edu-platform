@@ -4,3 +4,7 @@ server:
 spring:
   application:
     name: edu-user-service
+
+edu:
+  jwt:
+    secret: "edu-platform-step1-local-secret-key-please-change-later"

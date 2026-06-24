@@ -4,3 +4,22 @@ server:
 spring:
   application:
     name: edu-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: edu-user-service
+          uri: http://localhost:8081
+          predicates:
+            - Path=/user/**
+        - id: edu-course-service
+          uri: http://localhost:8082
+          predicates:
+            - Path=/course/**
+        - id: edu-trade-service
+          uri: http://localhost:8083
+          predicates:
+            - Path=/trade/**
+
+edu:
+  jwt:
+    secret: "edu-platform-step1-local-secret-key-please-change-later"
