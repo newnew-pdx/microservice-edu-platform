@@ -13,12 +13,12 @@
 - Java 17+
 - Spring Boot 3.x
 - Spring Cloud Gateway
+- Nacos Discovery
 - Maven 多模块
 - JWT
 
 后续规划：
 
-- Nacos
 - OpenFeign
 - Redis
 - RabbitMQ
@@ -42,7 +42,7 @@
 | --- | --- | --- |
 | Step0 | Maven 多模块微服务骨架搭建 | 已完成 |
 | Step1 | Gateway + JWT 鉴权与用户上下文透传链路 | 已完成 |
-| Step2 | 接入 Nacos 服务注册与发现 | 计划中 |
+| Step2 | 接入 Nacos 服务注册与发现 | 已完成 |
 | Step3 | 接入 OpenFeign 服务间调用 | 计划中 |
 | Step4 | 实现 Course Service + Redis 缓存 | 计划中 |
 | Step5 | 实现优惠券领取与订单链路 | 计划中 |
@@ -56,10 +56,28 @@
 mvn clean package -DskipTests
 ```
 
+启动 Nacos：
+
+```bash
+startup.cmd -m standalone
+```
+
 启动用户服务：
 
 ```bash
 java -jar edu-user-service/target/edu-user-service-0.0.1-SNAPSHOT.jar
+```
+
+启动课程服务：
+
+```bash
+java -jar edu-course-service/target/edu-course-service-0.0.1-SNAPSHOT.jar
+```
+
+启动交易服务：
+
+```bash
+java -jar edu-trade-service/target/edu-trade-service-0.0.1-SNAPSHOT.jar
 ```
 
 启动网关服务：
@@ -96,7 +114,41 @@ Authorization: Bearer <token>
 
 详细验证命令和排查过程见 [docs/step-1-gateway-auth.md](docs/step-1-gateway-auth.md)。
 
+## Step2 快速验证
+
+确认 Nacos 控制台可访问：
+
+```text
+http://localhost:8848/nacos
+```
+
+服务列表中应能看到：
+
+- `edu-gateway`
+- `edu-user-service`
+- `edu-course-service`
+- `edu-trade-service`
+
+通过 Gateway 访问用户链路：
+
+```text
+POST http://localhost:8080/user/login
+GET http://localhost:8080/user/profile
+Authorization: Bearer <token>
+```
+
+通过 Gateway 访问课程和交易健康检查时需要携带 token：
+
+```text
+GET http://localhost:8080/course/health
+GET http://localhost:8080/trade/health
+Authorization: Bearer <token>
+```
+
+详细验证命令和排查过程见 [docs/step-2-nacos-discovery.md](docs/step-2-nacos-discovery.md)。
+
 ## 文档索引
 
 - [Step0：项目骨架初始化](docs/step-0-scaffold.md)
 - [Step1：Gateway + JWT 鉴权与用户上下文透传](docs/step-1-gateway-auth.md)
+- [Step2：Nacos 服务注册与发现](docs/step-2-nacos-discovery.md)
