@@ -1,5 +1,11 @@
 package com.dyl.edu.common.jwt;
 
+/**
+ * JWT 中携带的用户上下文。
+ *
+ * <p>Gateway 校验 token 后会把这些字段转换为可信的 X-User-* 请求头，
+ * 业务服务只需要读取请求头即可获得当前登录用户。</p>
+ */
 public class JwtUserInfo {
 
     private Long userId;

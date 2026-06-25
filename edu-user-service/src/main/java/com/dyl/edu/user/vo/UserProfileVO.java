@@ -1,5 +1,10 @@
 package com.dyl.edu.user.vo;
 
+/**
+ * 用户个人信息响应对象。
+ *
+ * <p>当前数据来自 Gateway 透传的请求头，用于验证用户上下文链路。</p>
+ */
 public class UserProfileVO {
 
     private String userId;

@@ -15,12 +15,21 @@ import java.util.Map;
 import static org.springframework.web.reactive.function.server.RequestPredicates.GET;
 import static org.springframework.web.reactive.function.server.RouterFunctions.route;
 
+/**
+ * Gateway 健康检查路由。
+ *
+ * <p>Spring Cloud Gateway 基于 WebFlux，不能使用 Spring MVC Controller。
+ * 这里使用 RouterFunction 提供 /health，避免引入 servlet web 依赖。</p>
+ */
 @Configuration
 public class HealthController {
 
     @Value("${spring.application.name}")
     private String serviceName;
 
+    /**
+     * 声明 WebFlux 风格的 /health 路由。
+     */
     @Bean
     public RouterFunction<ServerResponse> healthRouter(ReactiveWebServerApplicationContext context) {
         return route(GET("/health"), request -> {
