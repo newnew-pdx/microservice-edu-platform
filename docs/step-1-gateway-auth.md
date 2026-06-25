@@ -504,8 +504,30 @@ Spring Cloud Gateway 与 Spring Framework 版本不兼容。最开始使用 Spri
 
 可以重点讲：
 
-- Gateway 和业务服务的职责边界
-- 为什么 Gateway 要删除客户端传入的 `X-User-*`
-- 为什么 Gateway 不能使用 `spring-boot-starter-web`
-- 为什么本阶段暂不接入 Nacos、Redis、MySQL
-- 遇到环境问题时如何区分编译问题、运行 Java 版本问题、依赖版本兼容问题
+1. Gateway 和业务服务的职责边界
+
+2. 为什么 Gateway 要删除客户端传入的 `X-User-*`
+
+3. 为什么 Gateway 不能使用 `spring-boot-starter-web`
+
+4. 为什么本阶段暂不接入 Nacos、Redis、MySQL
+
+5. 遇到环境问题时如何区分编译问题、运行 Java 版本问题、依赖版本兼容问题
+
+   # 源码阅读记录
+
+   ### 1. 登录链路
+   /user/login -> Gateway 路由 -> UserController -> UserService -> JwtUtil
+
+   ### 2. 鉴权链路
+   /user/profile -> Gateway JwtAuthGlobalFilter -> JwtUtil.parseToken -> 写入 X-User-* -> UserController.profile
+
+   ### 3. Gateway 与 user-service 的区别
+   Gateway 使用 Spring Cloud Gateway，底层 WebFlux/Netty；user-service 使用 Spring MVC/Tomcat。
+
+   ### 4. 为什么要删除 X-User-* 请求头
+   客户端请求头不可信，需要由 Gateway 根据 JWT 重新生成可信用户上下文。
+
+   ### 5. 当前不足
+   服务可被直接访问，真实环境需要内网隔离或服务间鉴权。
+   路由地址写死，后续接入 Nacos 改为服务发现。
