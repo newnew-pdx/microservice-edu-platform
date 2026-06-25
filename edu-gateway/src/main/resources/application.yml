@@ -5,18 +5,26 @@ spring:
   application:
     name: edu-gateway
   cloud:
+    nacos:
+      discovery:
+        # Step2 只接入 Nacos Discovery，用于服务注册与发现，不启用配置中心。
+        server-addr: localhost:8848
     gateway:
+      discovery:
+        locator:
+          # 本阶段使用手写 routes，避免自动暴露额外服务名路径。
+          enabled: false
       routes:
         - id: edu-user-service
-          uri: http://localhost:8081
+          uri: lb://edu-user-service
           predicates:
             - Path=/user/**
         - id: edu-course-service
-          uri: http://localhost:8082
+          uri: lb://edu-course-service
           predicates:
             - Path=/course/**
         - id: edu-trade-service
-          uri: http://localhost:8083
+          uri: lb://edu-trade-service
           predicates:
             - Path=/trade/**
 

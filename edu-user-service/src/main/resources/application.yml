@@ -4,6 +4,11 @@ server:
 spring:
   application:
     name: edu-user-service
+  cloud:
+    nacos:
+      discovery:
+        # Step2 只接入 Nacos Discovery，用于服务注册与发现，不启用配置中心。
+        server-addr: localhost:8848
 
 edu:
   jwt:
