@@ -1,6 +1,8 @@
 package com.dyl.edu.course.service;
 
-import com.dyl.edu.course.vo.CourseInfoVO;
+import com.dyl.edu.course.dto.CourseDTO;
+
+import java.util.List;
 
 /**
  * 课程服务。
@@ -8,7 +10,12 @@ import com.dyl.edu.course.vo.CourseInfoVO;
 public interface CourseService {
 
     /**
-     * 根据课程 ID 查询内存模拟的课程基础信息。
+     * 根据课程 ID 查询未删除的课程。
      */
-    CourseInfoVO getCourseInfo(Long courseId);
+    CourseDTO getCourseById(Long courseId);
+
+    /**
+     * 查询全部已上线课程。
+     */
+    List<CourseDTO> listOnlineCourses();
 }

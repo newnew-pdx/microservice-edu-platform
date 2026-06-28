@@ -4,8 +4,26 @@ server:
 spring:
   application:
     name: edu-course-service
+  datasource:
+    # Step4 本地 MySQL 连接，只由课程服务使用。
+    # 本机 3306 已被已有 mysqld 占用，Docker MySQL 映射到 3307。
+    url: jdbc:mysql://localhost:3307/edu_platform?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: edu_user
+    password: edu_pass123
+    driver-class-name: com.mysql.cj.jdbc.Driver
   cloud:
     nacos:
       discovery:
         # Step2 只接入 Nacos Discovery，用于服务注册与发现，不启用配置中心。
         server-addr: localhost:8848
+
+mybatis:
+  mapper-locations: classpath:/mapper/*.xml
+  type-aliases-package: com.dyl.edu.course.entity
+  configuration:
+    map-underscore-to-camel-case: true
+
+logging:
+  level:
+    # 本地学习阶段输出 Mapper 调用和 SQL，便于在 IDEA Run Console 排查。
+    com.dyl.edu.course.mapper: debug

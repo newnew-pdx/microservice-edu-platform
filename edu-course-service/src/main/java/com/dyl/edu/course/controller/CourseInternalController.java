@@ -1,6 +1,7 @@
 package com.dyl.edu.course.controller;
 
 import com.dyl.edu.common.result.Result;
+import com.dyl.edu.course.dto.CourseDTO;
 import com.dyl.edu.course.service.CourseService;
 import com.dyl.edu.course.vo.CourseInfoVO;
 import org.slf4j.Logger;
@@ -26,6 +27,8 @@ public class CourseInternalController {
     @GetMapping("/course/internal/{courseId}")
     public Result<CourseInfoVO> getCourse(@PathVariable("courseId") Long courseId) {
         log.info("进入课程内部查询接口，courseId={}", courseId);
-        return Result.success(courseService.getCourseInfo(courseId));
+        CourseDTO course = courseService.getCourseById(courseId);
+        return Result.success(new CourseInfoVO(
+                course.getCourseId(), course.getTitle(), course.getPrice(), course.getStatus()));
     }
 }
