@@ -17,12 +17,13 @@
 - OpenFeign
 - MySQL 8.0
 - MyBatis
+- Redis 7.x
+- Spring Data Redis
 - Maven 多模块
 - JWT
 
 后续规划：
 
-- Redis
 - RabbitMQ
 - Docker Compose
 - JMeter
@@ -34,7 +35,7 @@
 | `edu-common` | 公共模块，统一返回、异常、JWT 工具等 | 无 |
 | `edu-gateway` | 统一入口，路由转发，JWT 鉴权 | 8080 |
 | `edu-user-service` | 用户服务，当前提供登录和用户信息接口 | 8081 |
-| `edu-course-service` | 课程服务，通过 MyBatis 查询 MySQL 课程数据 | 8082 |
+| `edu-course-service` | 课程服务，通过 MyBatis 查询 MySQL，并使用 Redis 缓存课程详情 | 8082 |
 | `edu-trade-service` | 交易服务，通过 OpenFeign 调用课程服务 | 8083 |
 
 ## 当前已完成能力
@@ -44,6 +45,7 @@
 - Nacos 服务注册与发现、Gateway `lb://` 路由
 - trade-service 通过 OpenFeign 调用 course-service
 - 内存用户登录、MySQL 课程查询和交易预览链路
+- 课程详情 Redis 旁路缓存、空值缓存和 Redis 异常降级
 
 ## 阶段进度
 
@@ -54,8 +56,8 @@
 | Step2 | 接入 Nacos 服务注册与发现 | 已完成 |
 | Step3 | 接入 OpenFeign 服务间调用 | 已完成 |
 | Step4 | Course Service + MySQL 课程数据 | 已完成 |
-| Step5 | 实现优惠券领取与订单链路 | 计划中 |
-| Step6 | 接入 RabbitMQ 订单超时取消 | 计划中 |
+| Step5 | Course Service + Redis 课程详情缓存 | 已完成 |
+| Step6 | 待后续确认 | 计划中 |
 
 ## 快速启动
 
@@ -65,10 +67,18 @@
 mvn clean package -DskipTests
 ```
 
-Step2、Step3 依赖 Nacos Discovery，启动应用前先启动 Nacos：
+当前本地运行依赖 Nacos、MySQL 和 Redis，Docker 容器启动命令：
 
-```bash
-startup.cmd -m standalone
+```powershell
+docker start nacos-standalone
+docker start mysql-edu-platform
+docker start redis-edu-platform
+```
+
+首次创建 Redis 容器：
+
+```powershell
+docker run -d --name redis-edu-platform -p 6379:6379 redis:7.2
 ```
 
 启动用户服务：
@@ -182,6 +192,20 @@ Authorization: Bearer <token>
 
 详细命令和排查方式见 [docs/step-4-course-mysql.md](docs/step-4-course-mysql.md)。
 
+## Step5 快速验证
+
+Redis 使用 `localhost:6379`，课程详情 key 为 `course:detail:{courseId}`。清空课程 1 缓存后连续请求两次，
+第一次应回源 MySQL 并写入 Redis，第二次应直接命中缓存：
+
+```powershell
+docker exec redis-edu-platform redis-cli DEL course:detail:1
+docker exec redis-edu-platform redis-cli GET course:detail:1
+docker exec redis-edu-platform redis-cli TTL course:detail:1
+```
+
+不存在的课程使用 `**NULL**` 空值标记并缓存 1 分钟。详细启动、接口测试和故障降级验证见
+[docs/step-5-course-redis-cache.md](docs/step-5-course-redis-cache.md)。
+
 ## 文档索引
 
 - [Step0：项目骨架初始化](docs/step-0-scaffold.md)
@@ -189,3 +213,4 @@ Authorization: Bearer <token>
 - [Step2：Nacos 服务注册与发现](docs/step-2-nacos-discovery.md)
 - [Step3：OpenFeign 服务间调用](docs/step-3-openfeign.md)
 - [Step4：Course Service + MySQL 课程数据](docs/step-4-course-mysql.md)
+- [Step5：Course Service + Redis 课程详情缓存](docs/step-5-course-redis-cache.md)
