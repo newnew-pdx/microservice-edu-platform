@@ -4,8 +4,32 @@ server:
 spring:
   application:
     name: edu-trade-service
+  datasource:
+    # Step6 交易服务使用现有 edu_platform 数据库保存优惠券领取记录。
+    url: jdbc:mysql://localhost:3307/edu_platform?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: edu_user
+    password: edu_pass123
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      # Redis 承担优惠券库存与重复领取的并发控制，异常时不绕过 Redis 直接落库。
+      host: localhost
+      port: 6379
+      connect-timeout: 1s
+      timeout: 2s
   cloud:
     nacos:
       discovery:
         # Step2 只接入 Nacos Discovery，用于服务注册与发现，不启用配置中心。
         server-addr: localhost:8848
+
+mybatis:
+  mapper-locations: classpath:/mapper/*.xml
+  type-aliases-package: com.dyl.edu.trade.entity
+  configuration:
+    map-underscore-to-camel-case: true
+
+logging:
+  level:
+    # 本地学习阶段输出 Mapper 调用和 SQL，便于观察优惠券落库过程。
+    com.dyl.edu.trade.mapper: debug

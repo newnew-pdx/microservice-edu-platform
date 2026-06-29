@@ -36,7 +36,7 @@
 | `edu-gateway` | 统一入口，路由转发，JWT 鉴权 | 8080 |
 | `edu-user-service` | 用户服务，当前提供登录和用户信息接口 | 8081 |
 | `edu-course-service` | 课程服务，通过 MyBatis 查询 MySQL，并使用 Redis 缓存课程详情 | 8082 |
-| `edu-trade-service` | 交易服务，通过 OpenFeign 调用课程服务 | 8083 |
+| `edu-trade-service` | 交易服务，通过 OpenFeign 调用课程服务，并使用 Redis + Lua 完成优惠券领取 | 8083 |
 
 ## 当前已完成能力
 
@@ -46,6 +46,7 @@
 - trade-service 通过 OpenFeign 调用 course-service
 - 内存用户登录、MySQL 课程查询和交易预览链路
 - 课程详情 Redis 旁路缓存、空值缓存和 Redis 异常降级
+- 优惠券 Redis + Lua 原子领取、MySQL 唯一索引兜底和失败补偿
 
 ## 阶段进度
 
@@ -57,7 +58,7 @@
 | Step3 | 接入 OpenFeign 服务间调用 | 已完成 |
 | Step4 | Course Service + MySQL 课程数据 | 已完成 |
 | Step5 | Course Service + Redis 课程详情缓存 | 已完成 |
-| Step6 | 待后续确认 | 计划中 |
+| Step6 | Trade Service 优惠券领取：Redis + Lua + MySQL 唯一索引 | 已完成 |
 
 ## 快速启动
 
@@ -206,6 +207,25 @@ docker exec redis-edu-platform redis-cli TTL course:detail:1
 不存在的课程使用 `**NULL**` 空值标记并缓存 1 分钟。详细启动、接口测试和故障降级验证见
 [docs/step-5-course-redis-cache.md](docs/step-5-course-redis-cache.md)。
 
+## Step6 快速验证
+
+先执行 `docs/sql/step-6-coupon.sql`，再手动初始化 Redis 库存：
+
+```powershell
+docker exec redis-edu-platform redis-cli SET coupon:stock:1 5
+docker exec redis-edu-platform redis-cli DEL coupon:received:1
+```
+
+登录取得 token 后，通过 Gateway 领取优惠券：
+
+```text
+POST http://localhost:8080/trade/coupon/receive/1
+Authorization: Bearer <token>
+```
+
+第一次应领取成功，第二次应返回重复领取。完整 SQL、PowerShell 命令、一致性边界和排查方式见
+[docs/step-6-coupon-redis-lua.md](docs/step-6-coupon-redis-lua.md)。
+
 ## 文档索引
 
 - [Step0：项目骨架初始化](docs/step-0-scaffold.md)
@@ -214,3 +234,4 @@ docker exec redis-edu-platform redis-cli TTL course:detail:1
 - [Step3：OpenFeign 服务间调用](docs/step-3-openfeign.md)
 - [Step4：Course Service + MySQL 课程数据](docs/step-4-course-mysql.md)
 - [Step5：Course Service + Redis 课程详情缓存](docs/step-5-course-redis-cache.md)
+- [Step6：Trade Service 优惠券领取](docs/step-6-coupon-redis-lua.md)

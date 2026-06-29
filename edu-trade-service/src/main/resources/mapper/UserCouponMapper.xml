@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dyl.edu.trade.mapper.UserCouponMapper">
+
+    <insert id="insert" parameterType="UserCouponEntity"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO user_coupon
+            (user_id, coupon_id, status, received_at, used_at,
+             created_at, updated_at, deleted)
+        VALUES
+            (#{userId}, #{couponId}, #{status}, #{receivedAt}, #{usedAt},
+             #{createdAt}, #{updatedAt}, #{deleted})
+    </insert>
+</mapper>
