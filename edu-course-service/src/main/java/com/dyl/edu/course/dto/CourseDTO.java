@@ -1,5 +1,8 @@
 package com.dyl.edu.course.dto;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.time.LocalDateTime;
 
 /**
@@ -17,8 +20,16 @@ public class CourseDTO {
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
-    public CourseDTO(Long courseId, String title, String description, Integer price, String status,
-                     String teacherName, String coverUrl, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    @JsonCreator
+    public CourseDTO(@JsonProperty("courseId") Long courseId,
+                     @JsonProperty("title") String title,
+                     @JsonProperty("description") String description,
+                     @JsonProperty("price") Integer price,
+                     @JsonProperty("status") String status,
+                     @JsonProperty("teacherName") String teacherName,
+                     @JsonProperty("coverUrl") String coverUrl,
+                     @JsonProperty("createdAt") LocalDateTime createdAt,
+                     @JsonProperty("updatedAt") LocalDateTime updatedAt) {
         this.courseId = courseId;
         this.title = title;
         this.description = description;

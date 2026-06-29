@@ -11,11 +11,24 @@ spring:
     username: edu_user
     password: edu_pass123
     driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      # Step5 本地 Redis 只作为课程详情缓存，异常时降级查询 MySQL。
+      host: localhost
+      port: 6379
+      connect-timeout: 1s
+      timeout: 2s
   cloud:
     nacos:
       discovery:
         # Step2 只接入 Nacos Discovery，用于服务注册与发现，不启用配置中心。
         server-addr: localhost:8848
+
+course:
+  cache:
+    # 正常课程缓存 30 分钟；不存在的课程只缓存 1 分钟。
+    detail-ttl: 30m
+    null-ttl: 1m
 
 mybatis:
   mapper-locations: classpath:/mapper/*.xml
