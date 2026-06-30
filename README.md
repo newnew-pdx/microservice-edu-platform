@@ -19,12 +19,13 @@
 - MyBatis
 - Redis 7.x
 - Spring Data Redis
+- RabbitMQ 3.x
+- Spring AMQP
 - Maven 多模块
 - JWT
 
 后续规划：
 
-- RabbitMQ
 - Docker Compose
 - JMeter
 
@@ -36,7 +37,7 @@
 | `edu-gateway` | 统一入口，路由转发，JWT 鉴权 | 8080 |
 | `edu-user-service` | 用户服务，当前提供登录和用户信息接口 | 8081 |
 | `edu-course-service` | 课程服务，通过 MyBatis 查询 MySQL，并使用 Redis 缓存课程详情 | 8082 |
-| `edu-trade-service` | 交易服务，通过 OpenFeign 查询课程，支持幂等创建订单及 Redis + Lua 优惠券领取 | 8083 |
+| `edu-trade-service` | 交易服务，支持幂等创建订单、RabbitMQ 超时关闭及 Redis + Lua 优惠券领取 | 8083 |
 
 ## 当前已完成能力
 
@@ -48,6 +49,7 @@
 - 课程详情 Redis 旁路缓存、空值缓存和 Redis 异常降级
 - 优惠券 Redis + Lua 原子领取、MySQL 唯一索引兜底和失败补偿
 - 课程订单创建、MySQL 本地事务和 `userId + requestId` 接口幂等
+- RabbitMQ TTL + DLX 订单超时自动关闭和重复消费幂等
 
 ## 阶段进度
 
@@ -61,6 +63,7 @@
 | Step5 | Course Service + Redis 课程详情缓存 | 已完成 |
 | Step6 | Trade Service 优惠券领取：Redis + Lua + MySQL 唯一索引 | 已完成 |
 | Step7 | Trade Service 订单创建：MySQL 事务与接口幂等 | 已完成 |
+| Step8 | RabbitMQ 延迟队列：订单超时自动关闭 | 已完成 |
 
 ## 快速启动
 
@@ -70,12 +73,13 @@
 mvn clean package -DskipTests
 ```
 
-当前本地运行依赖 Nacos、MySQL 和 Redis，Docker 容器启动命令：
+当前本地运行依赖 Nacos、MySQL、Redis 和 RabbitMQ，Docker 容器启动命令：
 
 ```powershell
 docker start nacos-standalone
 docker start mysql-edu-platform
 docker start redis-edu-platform
+docker start rabbitmq-edu-platform
 ```
 
 首次创建 Redis 容器：
@@ -83,6 +87,14 @@ docker start redis-edu-platform
 ```powershell
 docker run -d --name redis-edu-platform -p 6379:6379 redis:7.2
 ```
+
+首次创建 RabbitMQ 容器：
+
+```powershell
+docker run -d --name rabbitmq-edu-platform -p 5672:5672 -p 15672:15672 -e RABBITMQ_DEFAULT_USER=edu_mq -e RABBITMQ_DEFAULT_PASS=edu_mq_pass rabbitmq:3-management
+```
+
+RabbitMQ 管理台为 `http://localhost:15672`，账号为 `edu_mq / edu_mq_pass`。
 
 启动用户服务：
 
@@ -246,6 +258,13 @@ Content-Type: application/json
 相同用户使用相同 `requestId` 重复请求时应返回已有订单，MySQL 中只保留一条记录。完整 SQL、事务边界、
 幂等设计和 PowerShell 验收命令见 [docs/step-7-order-create.md](docs/step-7-order-create.md)。
 
+## Step8 快速验证
+
+RabbitMQ 使用 `localhost:5672`，管理台为 `http://localhost:15672`。创建新订单后，消息先进入
+`order.timeout.delay.queue`，本地等待 30 秒后通过 DLX 进入 `order.close.queue` 并被消费。MySQL 中订单应从
+`UNPAID` 变为 `CLOSED`，且 `closed_at` 非空。完整 Docker 命令、RabbitMQ 拓扑、条件更新 SQL、PowerShell
+验收和一致性边界见 [docs/step-8-rabbitmq-order-timeout.md](docs/step-8-rabbitmq-order-timeout.md)。
+
 ## 文档索引
 
 - [Step0：项目骨架初始化](docs/step-0-scaffold.md)
@@ -256,3 +275,4 @@ Content-Type: application/json
 - [Step5：Course Service + Redis 课程详情缓存](docs/step-5-course-redis-cache.md)
 - [Step6：Trade Service 优惠券领取](docs/step-6-coupon-redis-lua.md)
 - [Step7：Trade Service 订单创建](docs/step-7-order-create.md)
+- [Step8：RabbitMQ 订单超时关闭](docs/step-8-rabbitmq-order-timeout.md)

@@ -33,6 +33,16 @@
         LIMIT 1
     </select>
 
+    <select id="selectByOrderNo" resultMap="OrderResultMap">
+        SELECT id, order_no, user_id, course_id, course_title,
+               original_amount, discount_amount, pay_amount, status, request_id,
+               created_at, updated_at, paid_at, closed_at, deleted
+        FROM edu_order
+        WHERE order_no = #{orderNo}
+          AND deleted = 0
+        LIMIT 1
+    </select>
+
     <insert id="insert" parameterType="com.dyl.edu.trade.entity.OrderEntity"
             useGeneratedKeys="true" keyProperty="id">
         INSERT INTO edu_order
@@ -44,4 +54,14 @@
              #{originalAmount}, #{discountAmount}, #{payAmount}, #{status}, #{requestId},
              #{createdAt}, #{updatedAt}, #{paidAt}, #{closedAt}, #{deleted})
     </insert>
+
+    <update id="closeUnpaidOrder">
+        UPDATE edu_order
+        SET status = 'CLOSED',
+            closed_at = NOW(),
+            updated_at = NOW()
+        WHERE order_no = #{orderNo}
+          AND status = 'UNPAID'
+          AND deleted = 0
+    </update>
 </mapper>

@@ -7,6 +7,8 @@ import com.dyl.edu.trade.dto.CourseInfoDTO;
 import com.dyl.edu.trade.dto.OrderCreateRequest;
 import com.dyl.edu.trade.entity.OrderEntity;
 import com.dyl.edu.trade.mapper.OrderMapper;
+import com.dyl.edu.trade.mq.message.OrderTimeoutMessage;
+import com.dyl.edu.trade.mq.producer.OrderTimeoutProducer;
 import com.dyl.edu.trade.service.OrderService;
 import com.dyl.edu.trade.service.OrderTransactionService;
 import com.dyl.edu.trade.vo.OrderVO;
@@ -15,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -36,13 +39,19 @@ public class OrderServiceImpl implements OrderService {
     private final OrderMapper orderMapper;
     private final CourseClient courseClient;
     private final OrderTransactionService orderTransactionService;
+    private final OrderTimeoutProducer orderTimeoutProducer;
+    private final long orderTimeoutSeconds;
 
     public OrderServiceImpl(OrderMapper orderMapper,
                             CourseClient courseClient,
-                            OrderTransactionService orderTransactionService) {
+                            OrderTransactionService orderTransactionService,
+                            OrderTimeoutProducer orderTimeoutProducer,
+                            @Value("${order.timeout.seconds:30}") long orderTimeoutSeconds) {
         this.orderMapper = orderMapper;
         this.courseClient = courseClient;
         this.orderTransactionService = orderTransactionService;
+        this.orderTimeoutProducer = orderTimeoutProducer;
+        this.orderTimeoutSeconds = orderTimeoutSeconds;
     }
 
     @Override
@@ -81,7 +90,68 @@ public class OrderServiceImpl implements OrderService {
 
         log.info("订单创建成功，orderId={}, orderNo={}, userId={}, courseId={}",
                 order.getId(), order.getOrderNo(), userId, courseId);
+        sendTimeoutMessage(order);
         return toVO(order);
+    }
+
+    @Override
+    public void closeTimeoutOrder(String orderNo) {
+        log.info("开始查询超时订单状态，orderNo={}", orderNo);
+        OrderEntity order;
+        try {
+            order = orderMapper.selectByOrderNo(orderNo);
+        } catch (DataAccessException ex) {
+            log.error("查询超时订单失败，orderNo={}, error={}", orderNo, ex.getMessage(), ex);
+            throw ex;
+        }
+
+        if (order == null) {
+            log.warn("超时订单不存在，忽略关闭消息，orderNo={}", orderNo);
+            return;
+        }
+        if (!ORDER_STATUS_UNPAID.equals(order.getStatus())) {
+            log.info("超时订单状态已变化，幂等跳过关闭，orderId={}, orderNo={}, status={}",
+                    order.getId(), order.getOrderNo(), order.getStatus());
+            return;
+        }
+
+        int affectedRows;
+        try {
+            affectedRows = orderMapper.closeUnpaidOrder(orderNo);
+        } catch (DataAccessException ex) {
+            log.error("条件更新关闭订单失败，orderId={}, orderNo={}, error={}",
+                    order.getId(), orderNo, ex.getMessage(), ex);
+            throw ex;
+        }
+
+        if (affectedRows == 1) {
+            log.info("订单超时关闭成功，orderId={}, orderNo={}, 原状态=UNPAID, 新状态=CLOSED",
+                    order.getId(), orderNo);
+            return;
+        }
+        if (affectedRows == 0) {
+            log.info("订单条件更新未命中，可能已被其他线程处理，幂等返回，orderId={}, orderNo={}",
+                    order.getId(), orderNo);
+            return;
+        }
+        throw new IllegalStateException("订单关闭更新行数异常：" + affectedRows);
+    }
+
+    private void sendTimeoutMessage(OrderEntity order) {
+        OrderTimeoutMessage message = new OrderTimeoutMessage(
+                UUID.randomUUID().toString(),
+                order.getId(),
+                order.getOrderNo(),
+                order.getUserId(),
+                order.getCreatedAt(),
+                orderTimeoutSeconds);
+        try {
+            orderTimeoutProducer.send(message);
+        } catch (RuntimeException ex) {
+            // 订单事务已经提交，本阶段只记录失败，不引入本地消息表或可靠消息补偿。
+            log.error("订单已创建但超时消息发送失败，orderId={}, orderNo={}, messageId={}, error={}",
+                    order.getId(), order.getOrderNo(), message.getMessageId(), ex.getMessage(), ex);
+        }
     }
 
     private OrderEntity queryOrder(Long userId, String requestId) {

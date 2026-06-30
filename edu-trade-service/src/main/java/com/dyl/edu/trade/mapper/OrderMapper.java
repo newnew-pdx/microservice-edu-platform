@@ -13,5 +13,9 @@ public interface OrderMapper {
     OrderEntity selectByUserIdAndRequestId(@Param("userId") Long userId,
                                            @Param("requestId") String requestId);
 
+    OrderEntity selectByOrderNo(@Param("orderNo") String orderNo);
+
     int insert(OrderEntity order);
+
+    int closeUnpaidOrder(@Param("orderNo") String orderNo);
 }
