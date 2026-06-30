@@ -19,11 +19,14 @@ import org.springframework.context.annotation.Configuration;
 public class RabbitMqConfig {
 
     @Bean
+    //直连交换机
+    //交换机名称 持久化 是否自动删除交换机
     public DirectExchange orderTimeoutExchange() {
         return new DirectExchange(OrderRabbitConstants.TIMEOUT_EXCHANGE, true, false);
     }
 
     @Bean
+    //延迟队列
     public Queue orderTimeoutDelayQueue(@Value("${order.timeout.seconds:30}") long timeoutSeconds) {
         return QueueBuilder.durable(OrderRabbitConstants.TIMEOUT_DELAY_QUEUE)
                 .withArgument("x-message-ttl", timeoutSeconds * 1000L)
@@ -33,6 +36,7 @@ public class RabbitMqConfig {
     }
 
     @Bean
+    //交换机和队列的绑定关系
     public Binding orderTimeoutBinding(Queue orderTimeoutDelayQueue,
                                        DirectExchange orderTimeoutExchange) {
         return BindingBuilder.bind(orderTimeoutDelayQueue)
