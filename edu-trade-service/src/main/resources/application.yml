@@ -5,7 +5,7 @@ spring:
   application:
     name: edu-trade-service
   datasource:
-    # Step6 交易服务使用现有 edu_platform 数据库保存优惠券领取记录。
+    # Step7 交易服务继续使用现有 edu_platform 数据库保存订单和优惠券领取记录。
     url: jdbc:mysql://localhost:3307/edu_platform?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
     username: edu_user
     password: edu_pass123
@@ -31,5 +31,5 @@ mybatis:
 
 logging:
   level:
-    # 本地学习阶段输出 Mapper 调用和 SQL，便于观察优惠券落库过程。
+    # 本地学习阶段输出 Mapper 调用和 SQL，便于观察订单及优惠券落库过程。
     com.dyl.edu.trade.mapper: debug

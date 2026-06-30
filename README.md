@@ -36,7 +36,7 @@
 | `edu-gateway` | 统一入口，路由转发，JWT 鉴权 | 8080 |
 | `edu-user-service` | 用户服务，当前提供登录和用户信息接口 | 8081 |
 | `edu-course-service` | 课程服务，通过 MyBatis 查询 MySQL，并使用 Redis 缓存课程详情 | 8082 |
-| `edu-trade-service` | 交易服务，通过 OpenFeign 调用课程服务，并使用 Redis + Lua 完成优惠券领取 | 8083 |
+| `edu-trade-service` | 交易服务，通过 OpenFeign 查询课程，支持幂等创建订单及 Redis + Lua 优惠券领取 | 8083 |
 
 ## 当前已完成能力
 
@@ -47,6 +47,7 @@
 - 内存用户登录、MySQL 课程查询和交易预览链路
 - 课程详情 Redis 旁路缓存、空值缓存和 Redis 异常降级
 - 优惠券 Redis + Lua 原子领取、MySQL 唯一索引兜底和失败补偿
+- 课程订单创建、MySQL 本地事务和 `userId + requestId` 接口幂等
 
 ## 阶段进度
 
@@ -59,6 +60,7 @@
 | Step4 | Course Service + MySQL 课程数据 | 已完成 |
 | Step5 | Course Service + Redis 课程详情缓存 | 已完成 |
 | Step6 | Trade Service 优惠券领取：Redis + Lua + MySQL 唯一索引 | 已完成 |
+| Step7 | Trade Service 订单创建：MySQL 事务与接口幂等 | 已完成 |
 
 ## 快速启动
 
@@ -226,6 +228,24 @@ Authorization: Bearer <token>
 第一次应领取成功，第二次应返回重复领取。完整 SQL、PowerShell 命令、一致性边界和排查方式见
 [docs/step-6-coupon-redis-lua.md](docs/step-6-coupon-redis-lua.md)。
 
+## Step7 快速验证
+
+先执行 `docs/sql/step-7-order.sql` 创建 `edu_order` 表。登录取得 token 后，通过 Gateway 创建课程订单：
+
+```text
+POST http://localhost:8080/trade/order/create
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "courseId": 1,
+  "requestId": "req-order-001"
+}
+```
+
+相同用户使用相同 `requestId` 重复请求时应返回已有订单，MySQL 中只保留一条记录。完整 SQL、事务边界、
+幂等设计和 PowerShell 验收命令见 [docs/step-7-order-create.md](docs/step-7-order-create.md)。
+
 ## 文档索引
 
 - [Step0：项目骨架初始化](docs/step-0-scaffold.md)
@@ -235,3 +255,4 @@ Authorization: Bearer <token>
 - [Step4：Course Service + MySQL 课程数据](docs/step-4-course-mysql.md)
 - [Step5：Course Service + Redis 课程详情缓存](docs/step-5-course-redis-cache.md)
 - [Step6：Trade Service 优惠券领取](docs/step-6-coupon-redis-lua.md)
+- [Step7：Trade Service 订单创建](docs/step-7-order-create.md)
