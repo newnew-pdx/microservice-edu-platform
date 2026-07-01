@@ -25,6 +25,7 @@
         <module>edu-user-service</module>
         <module>edu-course-service</module>
         <module>edu-trade-service</module>
+        <module>edu-learning-service</module>
     </modules>
 
     <properties>
